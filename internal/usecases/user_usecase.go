@@ -2,6 +2,7 @@ package usecases
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"time"
 
@@ -86,7 +87,7 @@ func (u *userUseCase) Login(req *models.LoginUserRequest) (*models.UserResponse,
 
 func (u *userUseCase) generateToken(userID uint) (string, error) {
 	claims := jwt.MapClaims{
-		"user_id": userID,
+		"user_id": fmt.Sprintf("%d", userID),
 		"exp":     time.Now().Add(time.Hour * 24 * 7).Unix(),
 	}
 

@@ -12,10 +12,10 @@ type UserController struct {
 	validator *validator.Validate
 }
 
-func NewUserController(userUsecase usecases.UserUseCase) *UserController{
+func NewUserController(userUsecase usecases.UserUseCase, validator *validator.Validate) *UserController {
 	return &UserController{
 		userUsecase: userUsecase,
-		validator:   validator.New(),
+		validator:   validator,
 	}
 }
 
