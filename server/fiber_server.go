@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
@@ -19,9 +20,10 @@ type fiberServer struct {
 	app    *fiber.App
 	db     database.Database
 	config *config.Config
+	validator *validator.Validate
 }
 
-func NewFiberServer(db database.Database, con *config.Config) Server {
+func NewFiberServer(db database.Database, con *config.Config, validator *validator.Validate) Server {
 	fiberApp := fiber.New(fiber.Config{
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
 			code := fiber.StatusInternalServerError
@@ -38,6 +40,7 @@ func NewFiberServer(db database.Database, con *config.Config) Server {
 		app:    fiberApp,
 		db:     db,
 		config: con,
+		validator: validator,
 	}
 }
 
@@ -47,11 +50,16 @@ func (s *fiberServer) Start() {
 
 	userRepository := repositories.NewUserRepository(s.db.GetDb())
 	userUsecase := usecases.NewUserUseCase(userRepository)
-	userController := http.NewUserController(userUsecase)
+	userController := http.NewUserController(userUsecase, s.validator)
+
+	transactionRepository := repositories.NewTransactionRepository(s.db.GetDb())
+	transactionUsecase := usecases.NewTransactionUseCase(transactionRepository)
+	transactionController := http.NewTransactionController(transactionUsecase, s.validator)
 
 	routeConfig := &route.RouteConfig{
 		App:            s.app,
 		UserController: userController,
+		TransactionController: transactionController,
 	}
 
 	routeConfig.SetupRoutes()
