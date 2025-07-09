@@ -10,6 +10,7 @@ import (
 func MigrateDatabase(db database.Database) {
 	if err := db.GetDb().AutoMigrate(
 		&entities.User{},
+		&entities.Transaction{},
 	); err != nil {
 		log.Fatalf("Failed to migrate database: %v", err)
 	}
