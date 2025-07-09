@@ -8,11 +8,13 @@ import (
 )
 
 func main() {
-	config := config.GetConfig()
+	conf := config.GetConfig()
 
-	db := database.NewPostgresDatabase(config)
+	db := database.NewPostgresDatabase(conf)
 
 	migrations.MigrateDatabase(db)
 
-	server.NewFiberServer(db, config).Start()
+	validator := config.NewValidator()
+
+	server.NewFiberServer(db, conf, validator).Start()
 }
