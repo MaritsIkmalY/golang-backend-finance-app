@@ -30,7 +30,7 @@ func AuthMiddleware(secret string) fiber.Handler{
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid token claims"})
 		}
 
-		userID, ok := claims["user_id"].(string)
+		userID, ok := claims["user_id"].(float64)
 
 		if !ok {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "user_id not found in token"})

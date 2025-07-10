@@ -7,17 +7,19 @@ type TransactionResponse struct {
 	Amount      float64   `json:"amount"`
 	Description string    `json:"description"`
 	Category    string    `json:"category"`
-	Date        time.Time `json:"date"`
+	Date        string    `json:"date"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 	UserID      uint      `json:"user_id"`
 }
 
 type TransactionRequest struct {
-	ID          uint    `json:"id,omitempty"`
 	Amount      float64 `json:"amount" validate:"required"`
 	Description string  `json:"description"`
 	Category    string  `json:"category" validate:"required,category_valid"`
-	UserID      uint    `json:"user_id" validate:"required"`
 	Date        string  `json:"date" validate:"required"`
+}
+
+type DeleteMultipleRequest struct {
+	IDs []uint `json:"ids" validate:"required"`
 }

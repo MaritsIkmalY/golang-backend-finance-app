@@ -2,13 +2,13 @@ package usecases
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/maritsikmaly/golang-finance-app/internal/entities"
 	"github.com/maritsikmaly/golang-finance-app/internal/models"
+	"github.com/maritsikmaly/golang-finance-app/internal/models/converter"
 	"github.com/maritsikmaly/golang-finance-app/internal/repositories"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -50,14 +50,7 @@ func (u *userUseCase) Register(req *models.RegisterUserRequest) (*models.UserRes
 		return nil, err
 	}
 
-	return &models.UserResponse{
-		ID:        user.ID,
-		Email:     user.Email,
-		Name:      user.Name,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
-		Token:     token,
-	}, nil
+	return converter.UserTokenResponse(user, token), nil
 }
 
 func (u *userUseCase) Login(req *models.LoginUserRequest) (*models.UserResponse, error) {
@@ -75,19 +68,12 @@ func (u *userUseCase) Login(req *models.LoginUserRequest) (*models.UserResponse,
 		return nil, err
 	}
 
-	return &models.UserResponse{
-		ID:        userResponse.ID,
-		Email:     userResponse.Email,
-		Name:      userResponse.Name,
-		CreatedAt: userResponse.CreatedAt,
-		UpdatedAt: userResponse.UpdatedAt,
-		Token:     token,
-	}, nil
+	return converter.UserTokenResponse(userResponse, token), nil
 }
 
 func (u *userUseCase) generateToken(userID uint) (string, error) {
 	claims := jwt.MapClaims{
-		"user_id": fmt.Sprintf("%d", userID),
+		"user_id": userID,
 		"exp":     time.Now().Add(time.Hour * 24 * 7).Unix(),
 	}
 

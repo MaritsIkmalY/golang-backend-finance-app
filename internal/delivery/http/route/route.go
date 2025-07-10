@@ -10,8 +10,8 @@ import (
 )
 
 type RouteConfig struct {
-	App            *fiber.App
-	UserController *http.UserController
+	App                   *fiber.App
+	UserController        *http.UserController
 	TransactionController *http.TransactionController
 }
 
@@ -19,9 +19,9 @@ func (c *RouteConfig) SetupRoutes() {
 	api := c.App.Group("/api/v1/finance-app")
 	guestRoutes(c, api)
 
-    auth := api.Group("/", middleware.AuthMiddleware(os.Getenv("JWT_SECRET")))
+	auth := api.Group("/", middleware.AuthMiddleware(os.Getenv("JWT_SECRET")))
 
-    authRoutes(c, auth)
+	authRoutes(c, auth)
 }
 
 func guestRoutes(c *RouteConfig, auth fiber.Router) {
@@ -32,6 +32,8 @@ func guestRoutes(c *RouteConfig, auth fiber.Router) {
 func authRoutes(c *RouteConfig, auth fiber.Router) {
 	auth.Post("/transactions", c.TransactionController.Create)
 	auth.Get("/transactions", c.TransactionController.GetByUserID)
+	auth.Get("/transactions/:id", c.TransactionController.Show)
 	auth.Put("/transactions/:id", c.TransactionController.Update)
 	auth.Delete("/transactions/:id", c.TransactionController.Delete)
+	auth.Delete("/transactions", c.TransactionController.DeleteMultiple)
 }
