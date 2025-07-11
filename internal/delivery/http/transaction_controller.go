@@ -33,8 +33,17 @@ func (c *TransactionController) Create(ctx *fiber.Ctx) error {
 	}
 
 	res, err := c.transactionUsecase.Create(ctx, &req)
+	
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		if fe, ok := err.(*fiber.Error); ok {
+			return ctx.Status(fe.Code).JSON(fiber.Map{
+				"error": fe.Message,
+			})
+		}
+
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
 
 	return ctx.Status(fiber.StatusCreated).JSON(res)
@@ -43,19 +52,27 @@ func (c *TransactionController) Create(ctx *fiber.Ctx) error {
 func (c *TransactionController) Update(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 	var req models.TransactionRequest
-	
+
 	if err := ctx.BodyParser(&req); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
-
 
 	if err := c.validator.Struct(req); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
 	res, err := c.transactionUsecase.Update(ctx, &req, id)
+
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		if fe, ok := err.(*fiber.Error); ok {
+			return ctx.Status(fe.Code).JSON(fiber.Map{
+				"error": fe.Message,
+			})
+		}
+
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
 
 	return ctx.Status(fiber.StatusOK).JSON(res)
@@ -70,7 +87,15 @@ func (c *TransactionController) Delete(ctx *fiber.Ctx) error {
 	err := c.transactionUsecase.Delete(ctx, id)
 
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		if fe, ok := err.(*fiber.Error); ok {
+			return ctx.Status(fe.Code).JSON(fiber.Map{
+				"error": fe.Message,
+			})
+		}
+
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
 
 	return ctx.Status(fiber.StatusNoContent).Send(nil)
@@ -80,8 +105,17 @@ func (c *TransactionController) GetByUserID(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id")
 
 	transactions, err := c.transactionUsecase.GetByUserID(ctx, fmt.Sprintf("%.0f", userID))
+	
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		if fe, ok := err.(*fiber.Error); ok {
+			return ctx.Status(fe.Code).JSON(fiber.Map{
+				"error": fe.Message,
+			})
+		}
+
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
 
 	return ctx.Status(fiber.StatusOK).JSON(transactions)
@@ -94,8 +128,17 @@ func (c *TransactionController) Show(ctx *fiber.Ctx) error {
 	}
 
 	transaction, err := c.transactionUsecase.Show(ctx, id)
+	
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		if fe, ok := err.(*fiber.Error); ok {
+			return ctx.Status(fe.Code).JSON(fiber.Map{
+				"error": fe.Message,
+			})
+		}
+
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
 
 	return ctx.Status(fiber.StatusOK).JSON(transaction)
@@ -113,8 +156,17 @@ func (c *TransactionController) DeleteMultiple(ctx *fiber.Ctx) error {
 	}
 
 	err := c.transactionUsecase.DeleteMultiple(ctx, req.IDs)
+	
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		if fe, ok := err.(*fiber.Error); ok {
+			return ctx.Status(fe.Code).JSON(fiber.Map{
+				"error": fe.Message,
+			})
+		}
+
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
 
 	return ctx.Status(fiber.StatusNoContent).Send(nil)

@@ -16,7 +16,7 @@ const (
 )
 
 type TransactionUseCase interface {
-	Create(ctx  *fiber.Ctx,req *models.TransactionRequest) (*models.TransactionResponse, error)
+	Create(ctx *fiber.Ctx, req *models.TransactionRequest) (*models.TransactionResponse, error)
 	Update(ctx *fiber.Ctx, req *models.TransactionRequest, id string) (*models.TransactionResponse, error)
 	Delete(ctx *fiber.Ctx, id string) error
 	DeleteMultiple(ctx *fiber.Ctx, ids []uint) error
@@ -36,7 +36,7 @@ func NewTransactionUseCase(tr repositories.TransactionRepository) TransactionUse
 
 func (t *transactionUseCase) Create(ctx *fiber.Ctx, req *models.TransactionRequest) (*models.TransactionResponse, error) {
 	parsedDate, err := parseDate(req.Date)
-	
+
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func (t *transactionUseCase) Create(ctx *fiber.Ctx, req *models.TransactionReque
 		Date:        parsedDate,
 	}
 
-	createdTransaction, err := t.transactionRepo.Create(ctx, transaction)
+	createdTransaction, err := t.transactionRepo.Create(transaction)
 
 	if err != nil {
 		return nil, err
@@ -65,35 +65,36 @@ func (t *transactionUseCase) Create(ctx *fiber.Ctx, req *models.TransactionReque
 }
 
 func (t *transactionUseCase) Update(ctx *fiber.Ctx, req *models.TransactionRequest, id string) (*models.TransactionResponse, error) {
-	
 	parsedDate, err := parseDate(req.Date)
-	
+
 	if err != nil {
 		return nil, err
 	}
-	
-	parsedID, err := parseID(id)
-	
-	if err != nil {
-		return nil, err
-	}
-	
+
 	userID, err := getUserID(ctx)
-	
+
 	if err != nil {
 		return nil, err
 	}
 
-	transaction := &entities.Transaction{
-		ID:          parsedID,
-		UserID:      userID,
-		Description: req.Description,
-		Amount:      req.Amount,
-		Category:    req.Category,
-		Date:        parsedDate,
+	transaction, err := t.transactionRepo.Show(id)
+
+	if err != nil {
+		return nil, err
 	}
 
-	if err := t.transactionRepo.Update(ctx, transaction); err != nil {
+	err = checkOwnership(userID, transaction)
+
+	if err != nil {
+		return nil, err
+	}
+
+	transaction.Description = req.Description
+	transaction.Amount = req.Amount
+	transaction.Category = req.Category
+	transaction.Date = parsedDate
+
+	if err := t.transactionRepo.Update(transaction); err != nil {
 		return nil, err
 	}
 
@@ -101,22 +102,54 @@ func (t *transactionUseCase) Update(ctx *fiber.Ctx, req *models.TransactionReque
 }
 
 func (t *transactionUseCase) Show(ctx *fiber.Ctx, id string) (*models.TransactionResponse, error) {
-	transaction, err := t.transactionRepo.Show(ctx, id)
+	transaction, err := t.transactionRepo.Show(id)
+
 	if err != nil {
 		return nil, err
 	}
+
+	userID, err := getUserID(ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = checkOwnership(userID, transaction)
+
+	if err != nil {
+		return nil, err
+	}
+
 	return converter.TransactionToResponse(transaction), nil
 }
 
 func (t *transactionUseCase) Delete(ctx *fiber.Ctx, id string) error {
-	if err := t.transactionRepo.Delete(ctx, id); err != nil {
+	userID, err := getUserID(ctx)
+
+	if err != nil {
+		return err
+	}
+
+	transaction, err := t.transactionRepo.Show(id)
+
+	if err != nil {
+		return err
+	}
+
+	err = checkOwnership(userID, transaction)
+
+	if err != nil {
+		return err
+	}
+
+	if err := t.transactionRepo.Delete(id); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (t *transactionUseCase) GetByUserID(ctx *fiber.Ctx, userID string) ([]*models.TransactionResponse, error) {
-	transactions, err := t.transactionRepo.GetByUserID(ctx, userID)
+	transactions, err := t.transactionRepo.GetByUserID(userID)
 	if err != nil {
 		return nil, err
 	}
@@ -130,13 +163,33 @@ func (t *transactionUseCase) GetByUserID(ctx *fiber.Ctx, userID string) ([]*mode
 }
 
 func (t *transactionUseCase) DeleteMultiple(ctx *fiber.Ctx, ids []uint) error {
-	idStrings := make([]string, len(ids))
+	userID, err := getUserID(ctx)
+	if err != nil {
+		return err
+	}
 
+	idStrings := make([]string, len(ids))
 	for i, id := range ids {
 		idStrings[i] = strconv.FormatUint(uint64(id), 10)
 	}
 
-	if err := t.transactionRepo.DeleteMultiple(ctx, idStrings); err != nil {
+	transactions, err := t.transactionRepo.GetByIDs(idStrings)
+	if err != nil {
+		return err
+	}
+
+	if len(transactions) != len(idStrings) {
+		return fiber.NewError(fiber.StatusNotFound, "some transactions not found")
+	}
+
+	for _, tx := range transactions {
+		err = checkOwnership(userID, tx)
+		if err != nil {
+			return err
+		}
+	}
+
+	if err := t.transactionRepo.DeleteMultiple(idStrings); err != nil {
 		return err
 	}
 
@@ -149,14 +202,6 @@ func parseDate(dateString string) (time.Time, error) {
 		return time.Time{}, err
 	}
 	return parsedDate, nil
-}
-
-func parseID(id string) (uint, error) {
-	parsedID, err := strconv.ParseUint(id, 10, 32)
-	if err != nil {
-		return 0, err
-	}
-	return uint(parsedID), nil
 }
 
 func getUserID(ctx *fiber.Ctx) (uint, error) {
@@ -173,3 +218,10 @@ func getUserID(ctx *fiber.Ctx) (uint, error) {
 	return uint(parsedUserID), nil
 }
 
+func checkOwnership(userID uint, transaction *entities.Transaction) error {
+	if transaction.UserID != userID {
+		return fiber.NewError(fiber.StatusForbidden, "you do not have permission to access this transaction")
+	}
+
+	return nil
+}
